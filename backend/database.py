@@ -6,6 +6,7 @@ import os
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
+from sqlalchemy.engine import URL
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 
@@ -22,7 +23,14 @@ def _build_database_url() -> str:
     host = os.getenv("MYSQL_HOST", "127.0.0.1")
     port = os.getenv("MYSQL_PORT", "3306")
     database = os.getenv("MYSQL_DATABASE", "resume_ranker")
-    return f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
+    return URL.create(
+        drivername="mysql+pymysql",
+        username=user,
+        password=password,
+        host=host,
+        port=int(port),
+        database=database,
+    ).render_as_string(hide_password=False)
 
 
 DATABASE_URL = _build_database_url()
