@@ -14,7 +14,10 @@ const UploadSection = ({ onUploadComplete }) => {
   const handleDragEnter = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragActive(true);
+    // Only activate if files are actually being dragged
+    if (e.dataTransfer && e.dataTransfer.types && e.dataTransfer.types.includes('Files')) {
+      setIsDragActive(true);
+    }
   };
 
   const handleDragLeave = (e) => {
@@ -110,7 +113,7 @@ const UploadSection = ({ onUploadComplete }) => {
         <div 
           className={`drop-zone premium-glass ${isDragActive ? 'drag-active' : ''}`}
           onDragEnter={handleDragEnter}
-          onDragOver={handleDragEnter}
+          onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current.click()}
