@@ -1,20 +1,25 @@
 import React, { useState } from 'react';
+import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
+import JDParser from './components/JDParser/JDParser';
 import UploadSection from './components/UploadSection';
 import Dashboard from './components/Dashboard';
+import InterviewQuestions from './components/InterviewQuestions/InterviewQuestions';
+import RecruiterChat from './components/RecruiterChat/RecruiterChat';
 import Leaderboard from './components/Leaderboard';
 import ParticleBackground from './components/ParticleBackground';
 import CursorGlow from './components/CursorGlow';
 import './App.css';
 
 function App() {
-  const [hasUploaded, setHasUploaded] = useState(false);
+  const [parsedJD, setParsedJD] = useState(null);
   const [analysisResults, setAnalysisResults] = useState(null);
+  const [resumeId, setResumeId] = useState(null);
 
   const handleUploadComplete = (data) => {
     setAnalysisResults(data);
-    setHasUploaded(true);
+    if (data.resume_id) setResumeId(data.resume_id);
     setTimeout(() => {
       document.getElementById('dashboard')?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
@@ -25,24 +30,40 @@ function App() {
   };
 
   return (
-    <div className="app-wrapper">
-      <CursorGlow />
-      <ParticleBackground />
-      <Navbar onUploadClick={scrollToUpload} />
-      
-      <main className="main-content">
-        <Hero onUploadClick={scrollToUpload} />
-        <UploadSection onUploadComplete={handleUploadComplete} />
-        
-        {hasUploaded && analysisResults && (
-          <div className="fade-in">
-            <Dashboard data={analysisResults} />
-          </div>
-        )}
+    <AuthProvider>
+      <div className="app-wrapper">
+        <CursorGlow />
+        <ParticleBackground />
+        <Navbar onUploadClick={scrollToUpload} />
 
-        <Leaderboard />
-      </main>
-    </div>
+        <main className="main-content">
+          <Hero onUploadClick={scrollToUpload} />
+
+          {/* JD Parser Section */}
+          <JDParser onParsed={setParsedJD} />
+
+          {/* Upload Section */}
+          <UploadSection onUploadComplete={handleUploadComplete} parsedJD={parsedJD} />
+
+          {/* Analysis Dashboard */}
+          {analysisResults && (
+            <div className="fade-in">
+              <Dashboard data={analysisResults} />
+            </div>
+          )}
+
+          {/* Interview Questions + Chat (only after successful analysis with resume_id) */}
+          {resumeId && analysisResults && !analysisResults.is_fake && (
+            <div className="fade-in post-analysis-tools">
+              <InterviewQuestions resumeId={resumeId} />
+              <RecruiterChat resumeId={resumeId} />
+            </div>
+          )}
+
+          <Leaderboard />
+        </main>
+      </div>
+    </AuthProvider>
   );
 }
 

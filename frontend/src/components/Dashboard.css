@@ -48,6 +48,8 @@
 .score-icon.green { color: var(--green-accent); box-shadow: 0 0 15px rgba(0, 230, 118, 0.2); }
 .score-icon.red { color: var(--red-accent); box-shadow: 0 0 15px rgba(255, 75, 75, 0.2); }
 .score-icon.blue { color: var(--accent-main); box-shadow: 0 0 15px rgba(79, 172, 254, 0.2); }
+.score-icon.purple { color: var(--accent-purple); box-shadow: 0 0 15px rgba(99, 102, 241, 0.2); }
+.score-icon.amber { color: #fbbf24; box-shadow: 0 0 15px rgba(251, 191, 36, 0.2); }
 
 .score-content h3 {
   font-size: 1.25rem;
@@ -79,6 +81,34 @@
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+.gradient-purple {
+  background: linear-gradient(90deg, #6366f1, #a5b4fc);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient-amber {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Summary Panels */
+.summary-panel {
+  padding: 1.5rem 2rem;
+  margin-bottom: 1.5rem;
+  border-radius: 16px;
+}
+
+.summary-text {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.7;
+  margin-top: 0.75rem;
 }
 
 /* Detail Metrics */
