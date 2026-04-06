@@ -2,66 +2,86 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from tempfile import NamedTemporaryFile
-import shutil
-
 from starlette.concurrency import run_in_threadpool
 
-from backend.utils.parser import extract_text
+
+def empty_analysis_result(explanation: str = "Unable to analyze resume.") -> dict:
+    """Return a stable empty payload for callers that need a default shape."""
+    return {
+        "match_score": 0.0,
+        "fraud_score": 0,
+        "final_score": 0.0,
+        "skills": [],
+        "missing_skills": [],
+        "fraud_reasons": [],
+        "authenticity_score": 0,
+        "authenticity_reasons": [],
+        "quality_score": 0,
+        "quality_warnings": [],
+        "is_fake": False,
+        "resume_status": "unknown",
+        "ranked": False,
+        "explanation": explanation,
+    }
 
 
-async def analyze_uploaded_resume(source_path: Path, filename: str, job_description: str) -> dict:
+async def analyze_resume_upload(file_bytes: bytes, filename: str, job_description: str) -> dict:
     """
-    Validate an uploaded PDF and send it to the AI module using a temp file.
+    Analyze an uploaded PDF using the AI package's byte-friendly API.
 
-    The AI call is run in a threadpool because it is blocking work and the
-    FastAPI route using it is async.
+    The AI call runs in a threadpool because it performs blocking work.
     """
-    temporary_path = _copy_to_temporary_pdf(source_path=source_path, filename=filename)
+    analysis = await run_in_threadpool(
+        _run_ai_analysis_bytes,
+        file_bytes,
+        job_description,
+        filename,
+    )
+    return normalize_analysis_result(analysis)
 
+
+def _run_ai_analysis_bytes(file_bytes: bytes, job_description: str, filename: str) -> dict:
     try:
-        # Validate that the uploaded file is a readable PDF before AI processing.
-        await run_in_threadpool(extract_text, str(temporary_path))
-        analysis = await run_in_threadpool(_run_ai_analysis, str(temporary_path), job_description)
-    finally:
-        temporary_path.unlink(missing_ok=True)
-
-    return _normalize_analysis_result(analysis)
-
-
-def _copy_to_temporary_pdf(source_path: Path, filename: str) -> Path:
-    suffix = Path(filename).suffix or ".pdf"
-    with NamedTemporaryFile(delete=False, suffix=suffix) as temporary_file:
-        temporary_path = Path(temporary_file.name)
-
-    with source_path.open("rb") as source_file, temporary_path.open("wb") as destination_file:
-        shutil.copyfileobj(source_file, destination_file)
-
-    return temporary_path
-
-
-def _run_ai_analysis(file_path: str, job_description: str) -> dict:
-    try:
-        from ai_pipeline import analyze_resume
+        from ai_pipeline import analyze_resume_bytes
     except ModuleNotFoundError as error:
         raise ImportError(
-            "The AI pipeline module could not be imported. Expected `ai_pipeline.py` at the project root."
+            "The AI pipeline module could not be imported. Install the feature-ai package or sync the AI files."
         ) from error
 
-    return analyze_resume(file_path, job_description)
+    return analyze_resume_bytes(file_bytes, job_description, filename)
 
 
-def _normalize_analysis_result(analysis: dict) -> dict:
-    """
-    Keep the API response stable even if the AI module omits optional keys.
-    """
-    return {
-        "match_score": float(analysis.get("match_score", 0.0)),
-        "fraud_score": int(analysis.get("fraud_score", 0)),
-        "final_score": float(analysis.get("final_score", 0.0)),
-        "skills": list(analysis.get("skills", [])),
-        "missing_skills": list(analysis.get("missing_skills", [])),
-        "fraud_reasons": list(analysis.get("fraud_reasons", [])),
-        "explanation": str(analysis.get("explanation", "")),
-    }
+def normalize_analysis_result(analysis: dict | None) -> dict:
+    """Keep the API response shape stable for frontend consumers."""
+    payload = empty_analysis_result()
+    if analysis is None:
+        return payload
+
+    payload.update(
+        {
+            "match_score": float(analysis.get("match_score", 0.0)),
+            "fraud_score": int(analysis.get("fraud_score", 0)),
+            "final_score": float(analysis.get("final_score", 0.0)),
+            "skills": list(analysis.get("skills", [])),
+            "missing_skills": list(analysis.get("missing_skills", [])),
+            "fraud_reasons": list(analysis.get("fraud_reasons", [])),
+            "authenticity_score": int(analysis.get("authenticity_score", 0)),
+            "authenticity_reasons": list(analysis.get("authenticity_reasons", [])),
+            "quality_score": int(analysis.get("quality_score", 0)),
+            "quality_warnings": list(analysis.get("quality_warnings", [])),
+            "is_fake": bool(analysis.get("is_fake", False)),
+            "resume_status": str(analysis.get("resume_status", "unknown")),
+            "ranked": bool(analysis.get("ranked", False)),
+            "explanation": str(analysis.get("explanation", payload["explanation"])),
+        }
+    )
+
+    if payload["is_fake"]:
+        payload["final_score"] = 0.0
+        payload["ranked"] = False
+        payload["resume_status"] = "fake"
+
+    if payload["resume_status"] == "real":
+        payload["ranked"] = True
+
+    return payload
