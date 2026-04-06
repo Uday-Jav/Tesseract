@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from dotenv import load_dotenv
 from starlette.concurrency import run_in_threadpool
+
+load_dotenv()
 
 
 def empty_analysis_result(explanation: str = "Unable to analyze resume.") -> dict:
@@ -21,6 +24,7 @@ def empty_analysis_result(explanation: str = "Unable to analyze resume.") -> dic
         "is_fake": False,
         "resume_status": "unknown",
         "ranked": False,
+        "ai_provider": "local",
         "explanation": explanation,
     }
 
@@ -42,10 +46,10 @@ async def analyze_resume_upload(file_bytes: bytes, filename: str, job_descriptio
 
 def _run_ai_analysis_bytes(file_bytes: bytes, job_description: str, filename: str) -> dict:
     try:
-        from ai_pipeline import analyze_resume_bytes
+        from ai.ai_pipeline import analyze_resume_bytes
     except ModuleNotFoundError as error:
         raise ImportError(
-            "The AI pipeline module could not be imported. Install the feature-ai package or sync the AI files."
+            "The AI pipeline module could not be imported. Install the dependencies or sync the AI files."
         ) from error
 
     return analyze_resume_bytes(file_bytes, job_description, filename)
@@ -72,6 +76,7 @@ def normalize_analysis_result(analysis: dict | None) -> dict:
             "is_fake": bool(analysis.get("is_fake", False)),
             "resume_status": str(analysis.get("resume_status", "unknown")),
             "ranked": bool(analysis.get("ranked", False)),
+            "ai_provider": str(analysis.get("ai_provider", "local")),
             "explanation": str(analysis.get("explanation", payload["explanation"])),
         }
     )

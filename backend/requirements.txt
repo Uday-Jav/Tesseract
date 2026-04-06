@@ -3,3 +3,11 @@ uvicorn
 python-multipart
 pdfplumber
 httpx
+google-genai
+python-dotenv
+sentence-transformers
+sqlalchemy
+pymysql
+passlib[bcrypt]
+python-jose[cryptography]
+email-validator
