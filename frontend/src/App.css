@@ -1,1 +1,7 @@
-/* App specific styles will go here if needed, keeping it empty for now as we use index.css heavily. */
+/* App specific layout styles */
+.post-analysis-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding-bottom: 2rem;
+}
