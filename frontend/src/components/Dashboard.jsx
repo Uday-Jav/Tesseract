@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Target, Activity, ShieldAlert } from 'lucide-react';
+import { Target, Activity, ShieldAlert, AlertTriangle, CheckCircle, XCircle, Zap, BookOpen } from 'lucide-react';
 import './Dashboard.css';
 
 const ProgressBar = ({ label, targetValue, colorClass }) => {
   const [width, setWidth] = useState(0);
 
   useEffect(() => {
-    // Delay animation to trigger on mount
     const timer = setTimeout(() => {
       setWidth(targetValue);
     }, 300);
@@ -29,18 +28,53 @@ const ProgressBar = ({ label, targetValue, colorClass }) => {
   );
 };
 
-const Dashboard = ({ scores }) => {
-  // scores = { match: 92, fraud: 5, final: 88 }
-  const renderScores = scores || { match: 94, fraud: 2, final: 91 };
+const TagList = ({ items, colorClass }) => (
+  <div className="tag-list">
+    {items.map((item, i) => (
+      <span key={i} className={`tag ${colorClass}`}>{item}</span>
+    ))}
+  </div>
+);
+
+const Dashboard = ({ data }) => {
+  if (!data) return null;
+
+  const isFake = data.is_fake === true;
+  const statusLabel = data.resume_status === "fake" 
+    ? "Fake / Template-Based Resume Detected" 
+    : data.resume_status === "real" 
+      ? "Authentic Resume Verified" 
+      : "Resume Status Unknown";
+
+  const statusIcon = isFake 
+    ? <XCircle size={22} /> 
+    : <CheckCircle size={22} />;
+
+  const statusClass = isFake ? "status-fake" : "status-real";
 
   return (
     <section className="dashboard-section" id="dashboard">
       <div className="dashboard-container">
         <h2 className="section-title">Analysis Complete</h2>
-        <p className="section-subtitle">Comprehensive metrics extracted and validated</p>
+
+        {/* Status Banner */}
+        <div className={`status-banner glass-panel ${statusClass}`}>
+          {statusIcon}
+          <span>{statusLabel}</span>
+          {!data.ranked && <span className="ranked-badge">Not Ranked</span>}
+          {data.ranked && <span className="ranked-badge ranked-yes">Ranked ✓</span>}
+        </div>
+
+        {/* Explanation */}
+        {data.explanation && (
+          <div className="explanation-panel glass-panel">
+            <BookOpen size={18} />
+            <p>{data.explanation}</p>
+          </div>
+        )}
         
+        {/* Score Cards */}
         <div className="scores-grid">
-          
           <div className="score-card glass-panel">
             <div className="score-icon green">
               <Target size={28} />
@@ -48,7 +82,7 @@ const Dashboard = ({ scores }) => {
             <div className="score-content">
               <h3>Match Score</h3>
               <p>Skills & Requirements Alignment</p>
-              <div className="big-score gradient-green">{renderScores.match}%</div>
+              <div className="big-score gradient-green">{data.match_score ?? 0}%</div>
             </div>
           </div>
 
@@ -59,7 +93,7 @@ const Dashboard = ({ scores }) => {
             <div className="score-content">
               <h3>Fraud Score</h3>
               <p>Anomaly & Exaggeration Detection</p>
-              <div className="big-score gradient-red">{renderScores.fraud}%</div>
+              <div className="big-score gradient-red">{data.fraud_score ?? 0}%</div>
             </div>
           </div>
 
@@ -70,28 +104,63 @@ const Dashboard = ({ scores }) => {
             <div className="score-content">
               <h3>Final Score</h3>
               <p>Overall Candidate Fit</p>
-              <div className="big-score text-gradient">{renderScores.final}%</div>
+              <div className="big-score text-gradient">{data.final_score ?? 0}%</div>
             </div>
           </div>
-
         </div>
 
+        {/* Score Bars */}
         <div className="detailed-metrics glass-panel">
-          <h3 className="metrics-title">Detailed Metrics Breakdown</h3>
-          {(renderScores.metrics || [
-            { label: "Technical Skills Match", value: 95, color: "bg-green" },
-            { label: "Experience Alignment", value: 88, color: "bg-blue" },
-            { label: "Education Match", value: 100, color: "bg-purple" },
-            { label: "Risk Indicators", value: renderScores.fraud, color: "bg-red" }
-          ]).map((metric, idx) => (
-            <ProgressBar 
-              key={idx} 
-              label={metric.label || metric.name} 
-              targetValue={metric.value || metric.score} 
-              colorClass={metric.color || (idx === 0 ? 'bg-green' : idx === 1 ? 'bg-blue' : idx === 2 ? 'bg-purple' : 'bg-red')} 
-            />
-          ))}
+          <h3 className="metrics-title">Score Breakdown</h3>
+          <ProgressBar label="Match Score" targetValue={data.match_score ?? 0} colorClass="bg-green" />
+          <ProgressBar label="Authenticity Score" targetValue={data.authenticity_score ?? 0} colorClass="bg-blue" />
+          <ProgressBar label="Quality Score" targetValue={data.quality_score ?? 0} colorClass="bg-purple" />
+          <ProgressBar label="Fraud Risk" targetValue={data.fraud_score ?? 0} colorClass="bg-red" />
         </div>
+
+        {/* Skills Section (only for real resumes) */}
+        {!isFake && data.skills && data.skills.length > 0 && (
+          <div className="detail-section glass-panel">
+            <h3 className="metrics-title"><Zap size={18} /> Matched Skills</h3>
+            <TagList items={data.skills} colorClass="tag-green" />
+          </div>
+        )}
+
+        {!isFake && data.missing_skills && data.missing_skills.length > 0 && (
+          <div className="detail-section glass-panel">
+            <h3 className="metrics-title"><AlertTriangle size={18} /> Missing Skills</h3>
+            <TagList items={data.missing_skills} colorClass="tag-amber" />
+          </div>
+        )}
+
+        {/* Fraud + Authenticity Reasons (for fake resumes) */}
+        {isFake && data.fraud_reasons && data.fraud_reasons.length > 0 && (
+          <div className="detail-section glass-panel section-danger">
+            <h3 className="metrics-title"><ShieldAlert size={18} /> Fraud Indicators</h3>
+            <ul className="reason-list">
+              {data.fraud_reasons.map((r, i) => <li key={i}>{r}</li>)}
+            </ul>
+          </div>
+        )}
+
+        {isFake && data.authenticity_reasons && data.authenticity_reasons.length > 0 && (
+          <div className="detail-section glass-panel section-danger">
+            <h3 className="metrics-title"><XCircle size={18} /> Authenticity Flags</h3>
+            <ul className="reason-list">
+              {data.authenticity_reasons.map((r, i) => <li key={i}>{r}</li>)}
+            </ul>
+          </div>
+        )}
+
+        {/* Quality Warnings */}
+        {data.quality_warnings && data.quality_warnings.length > 0 && (
+          <div className="detail-section glass-panel">
+            <h3 className="metrics-title"><AlertTriangle size={18} /> Quality Warnings</h3>
+            <ul className="reason-list warning-list">
+              {data.quality_warnings.map((w, i) => <li key={i}>{w}</li>)}
+            </ul>
+          </div>
+        )}
 
       </div>
     </section>

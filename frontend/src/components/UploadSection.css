@@ -240,3 +240,17 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* Upload Error */
+.upload-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  border-radius: 12px;
+  border-left: 4px solid var(--red-accent);
+  color: #ff7b7b;
+  font-size: 0.95rem;
+  font-weight: 500;
+}

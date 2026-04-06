@@ -2,10 +2,13 @@ import React, { useState, useRef } from 'react';
 import { UploadCloud, FileText, Loader2 } from 'lucide-react';
 import './UploadSection.css';
 
+const API_BASE = "http://10.224.213.198:8000";
+
 const UploadSection = ({ onUploadComplete }) => {
   const [isDragActive, setIsDragActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [jobDescription, setJobDescription] = useState("We are looking for a Senior Frontend Engineer with expertize in React, CSS, and modern UI design.");
+  const [jobDescription, setJobDescription] = useState("We are looking for a Senior Frontend Engineer with expertise in React, CSS, and modern UI design.");
+  const [uploadError, setUploadError] = useState(null);
   const fileInputRef = useRef(null);
 
   const handleDragEnter = (e) => {
@@ -37,36 +40,47 @@ const UploadSection = ({ onUploadComplete }) => {
   };
 
   const handleFile = async (file) => {
+    setUploadError(null);
+
+    // Client-side validation
+    if (!file || file.size === 0) {
+      setUploadError("Empty file detected. Please select a valid PDF.");
+      return;
+    }
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      setUploadError("Only PDF files are accepted. Please upload a .pdf file.");
+      return;
+    }
     if (!jobDescription || jobDescription.trim().length < 10) {
-      alert("Please provide a more detailed Job Description first.");
+      setUploadError("Please provide a more detailed Job Description (at least 10 characters).");
       return;
     }
 
     setIsUploading(true);
-    
+
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('job_description', jobDescription);
+    formData.append("resume", file);
+    formData.append("job_description", jobDescription);
 
     try {
-      const response = await fetch('http://10.224.213.198:8000/upload-resume', {
-        method: 'POST',
+      const response = await fetch(`${API_BASE}/analyze-resume`, {
+        method: "POST",
         body: formData,
       });
 
       const data = await response.json();
-      console.log("upload response:", data);
+      console.log("analyze-resume response:", data);
 
       if (!response.ok) {
-        throw new Error(data.detail || "Upload failed");
+        throw new Error(data.detail || "Resume analysis failed");
       }
-      
+
       setIsUploading(false);
       onUploadComplete(data);
     } catch (error) {
-      console.error('Error uploading file:', error);
+      console.error('Analysis error:', error);
       setIsUploading(false);
-      alert(`Backend Error: ${error.message}. Verify the server at http://10.224.213.198:8000/upload-resume is active.`);
+      setUploadError(`${error.message}`);
     }
   };
 
@@ -87,6 +101,12 @@ const UploadSection = ({ onUploadComplete }) => {
             <p className="jd-tip">Higher detail leads to more accurate AI alignment scores</p>
         </div>
 
+        {uploadError && (
+          <div className="upload-error glass-panel fade-in">
+            <span>⚠️ {uploadError}</span>
+          </div>
+        )}
+
         <div 
           className={`drop-zone premium-glass ${isDragActive ? 'drag-active' : ''}`}
           onDragEnter={handleDragEnter}
@@ -103,7 +123,7 @@ const UploadSection = ({ onUploadComplete }) => {
             type="file"
             className="file-input hidden"
             onChange={handleChange}
-            accept=".pdf,.doc,.docx"
+            accept=".pdf"
           />
           
           {isUploading ? (
@@ -119,7 +139,7 @@ const UploadSection = ({ onUploadComplete }) => {
                 <UploadCloud className="upload-icon" size={48} />
               </div>
               <h3>Drag & Drop Resume Here</h3>
-              <p>or click to browse from local files (.pdf, .docx)</p>
+              <p>or click to browse from local files (.pdf only)</p>
             </div>
           )}
           </div>

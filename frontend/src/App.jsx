@@ -15,7 +15,6 @@ function App() {
   const handleUploadComplete = (data) => {
     setAnalysisResults(data);
     setHasUploaded(true);
-    // Scroll to dashboard smoothly
     setTimeout(() => {
       document.getElementById('dashboard')?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
@@ -37,7 +36,7 @@ function App() {
         
         {hasUploaded && analysisResults && (
           <div className="fade-in">
-            <Dashboard scores={analysisResults.scores || analysisResults} />
+            <Dashboard data={analysisResults} />
           </div>
         )}
 
