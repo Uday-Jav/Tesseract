@@ -13,7 +13,10 @@ from passlib.context import CryptContext
 
 load_dotenv()
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Prefer PBKDF2 for new hashes because the current bcrypt/passlib
+# combination in this environment is unstable. We still keep bcrypt
+# in the context so older hashes remain verifiable.
+pwd_context = CryptContext(schemes=["pbkdf2_sha256", "bcrypt"], deprecated="auto")
 JWT_SECRET = os.getenv("JWT_SECRET_KEY", "change-me-in-env")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "60"))
