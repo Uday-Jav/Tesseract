@@ -39,8 +39,8 @@ def read_root() -> dict:
 
 @app.post("/upload-resume")
 async def upload_resume(
-    file: Annotated[UploadFile | None, File(None)],
-    job_description: Annotated[str | None, Form(None)] = None,
+    file: UploadFile | None = File(None),
+    job_description: str | None = Form(None),
 ) -> dict:
     """
     Upload a PDF resume, analyze it with the AI pipeline, and keep it in memory.
